@@ -1,0 +1,13 @@
+{
+  "name": "MirchiRakshak AI",
+  "short_name": "MirchiRakshak",
+  "description": "AI-powered chili farming assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#9a3412",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/mirchi-icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

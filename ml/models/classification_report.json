@@ -1,0 +1,62 @@
+{
+  "per_class": {
+    "Chilli __Whitefly": {
+      "precision": 0.9608,
+      "recall": 0.9423,
+      "f1-score": 0.9515,
+      "support": 52
+    },
+    "Chilli __Yellowish": {
+      "precision": 0.8431,
+      "recall": 0.8269,
+      "f1-score": 0.835,
+      "support": 52
+    },
+    "Chilli__Anthracnos": {
+      "precision": 0.8966,
+      "recall": 0.9811,
+      "f1-score": 0.9369,
+      "support": 53
+    },
+    "Chilli__Damping_Off": {
+      "precision": 0.9524,
+      "recall": 1.0,
+      "f1-score": 0.9756,
+      "support": 20
+    },
+    "Chilli__Leaf_Curl_Virus": {
+      "precision": 0.8276,
+      "recall": 0.9231,
+      "f1-score": 0.8727,
+      "support": 52
+    },
+    "Chilli__Leaf_Spot": {
+      "precision": 0.9455,
+      "recall": 1.0,
+      "f1-score": 0.972,
+      "support": 52
+    },
+    "Chilli__Veinal_Mottle_Virus": {
+      "precision": 0.9951,
+      "recall": 1.0,
+      "f1-score": 0.9975,
+      "support": 202
+    },
+    "Chilli___healthy": {
+      "precision": 0.9944,
+      "recall": 0.9223,
+      "f1-score": 0.957,
+      "support": 193
+    }
+  },
+  "macro_avg": {
+    "precision": 0.9269,
+    "recall": 0.9495,
+    "f1-score": 0.9373
+  },
+  "weighted_avg": {
+    "precision": 0.9549,
+    "recall": 0.9527,
+    "f1-score": 0.9529
+  }
+}

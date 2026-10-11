@@ -1,0 +1,228 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design system: MirchiRakshak AI — earthy high-tech, chili/leaf/soil palette. */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-telugu: "Noto Sans Telugu", "Inter", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand tokens */
+  --color-earth-50: #fafaf9;
+  --color-earth-100: #f5f5f4;
+  --color-earth-200: #e7e5e4;
+  --color-earth-300: #d6d3d1;
+  --color-earth-400: #a8a29e;
+  --color-earth-500: #78716c;
+  --color-earth-600: #57534e;
+  --color-earth-800: #292524;
+  --color-earth-900: #1c1917;
+
+  --color-chili-50: #fff7ed;
+  --color-chili-100: #ffedd5;
+  --color-chili-500: #f97316;
+  --color-chili-600: #9a3412;
+  --color-chili-700: #7c2d12;
+  --color-chili-900: #431407;
+
+  --color-leaf-50: #f0fdf4;
+  --color-leaf-100: #dcfce7;
+  --color-leaf-500: #22c55e;
+  --color-leaf-600: #166534;
+  --color-leaf-700: #14532d;
+  --color-leaf-900: #052e16;
+
+  --color-sky-50: #f0f9ff;
+  --color-sky-500: #0ea5e9;
+  --color-sky-800: #075985;
+  --color-sky-900: #0c4a6e;
+}
+
+:root {
+  --radius: 1rem;
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #9a3412;
+  --primary-foreground: #fff7ed;
+  --secondary: #166534;
+  --secondary-foreground: #f0fdf4;
+  --muted: #f5f5f4;
+  --muted-foreground: #78716c;
+  --accent: #fff7ed;
+  --accent-foreground: #9a3412;
+  --destructive: #b91c1c;
+  --destructive-foreground: #fef2f2;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --ring: #9a3412;
+}
+
+.dark {
+  --background: #1c1917;
+  --foreground: #fafaf9;
+  --card: #292524;
+  --card-foreground: #fafaf9;
+  --popover: #292524;
+  --popover-foreground: #fafaf9;
+  --primary: #f97316;
+  --primary-foreground: #431407;
+  --secondary: #22c55e;
+  --secondary-foreground: #052e16;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
+  --accent: #431407;
+  --accent-foreground: #ffedd5;
+  --destructive: #ef4444;
+  --destructive-foreground: #fef2f2;
+  --border: #44403c;
+  --input: #44403c;
+  --ring: #f97316;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :lang(te),
+  .font-telugu {
+    font-family: var(--font-telugu);
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: 251;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes wave {
+
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: 8%;
+  }
+
+  100% {
+    top: 92%;
+  }
+}
+
+@utility animate-rise {
+  animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-fade {
+  animation: fade-in 0.4s ease-out both;
+}
+
+@utility shimmer-bg {
+  background: linear-gradient(90deg, var(--color-chili-600) 0%, var(--color-chili-500) 45%, #fdba74 50%, var(--color-chili-500) 55%, var(--color-chili-600) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+@utility glass {
+  background: color-mix(in oklab, white 80%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid color-mix(in oklab, white 60%, transparent);
+}
+
+@utility scrollbar-hide {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "total_images": 2708,
+  "split_counts": {
+    "train_images": 2216,
+    "validation_images": 246,
+    "test_images": 246
+  },
+  "exact_duplicates_count": 0,
+  "near_duplicates_count": 0,
+  "cross_split_exact_duplicates_count": 0,
+  "cross_split_near_duplicates_count": 0,
+  "suspicious_filename_groups_count": 0,
+  "cross_split_logical_groups_count": 0,
+  "cross_split_exact_duplicates": [],
+  "cross_split_near_duplicates": [],
+  "suspicious_filename_groups": [],
+  "cross_split_logical_groups": [],
+  "conclusion": "PERFECT LEAK-FREE DATASET: 0 cross-split exact duplicates, 0 cross-split near duplicates, 0 suspicious filename groups, and 0 cross-split logical image groups. The train, validation, and test splits are completely disjoint and leak-free."
+}

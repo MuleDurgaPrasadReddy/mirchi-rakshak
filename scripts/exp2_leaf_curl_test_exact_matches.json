@@ -1,0 +1,170 @@
+[
+  {
+    "filename": "download (4).jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\download (4).jpg",
+    "index_in_test": 48,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli __Yellowish",
+    "confidence": 0.6534,
+    "confidence_pct": 65.34,
+    "width": 277,
+    "height": 182,
+    "probabilities": {
+      "Chilli __Whitefly": 0.0003000000142492354,
+      "Chilli __Yellowish": 0.6534000039100647,
+      "Chilli__Anthracnos": 0.0,
+      "Chilli__Damping_Off": 0.0,
+      "Chilli__Leaf_Curl_Virus": 0.34630000591278076,
+      "Chilli__Leaf_Spot": 9.999999747378752e-05,
+      "Chilli__Veinal_Mottle_Virus": 0.0,
+      "Chilli___healthy": 0.0
+    }
+  },
+  {
+    "filename": "images (10)a.jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (10)a.jpg",
+    "index_in_test": 49,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli__Leaf_Curl_Virus",
+    "confidence": 0.7839,
+    "confidence_pct": 78.39,
+    "width": 222,
+    "height": 227,
+    "probabilities": {
+      "Chilli __Whitefly": 0.1729000061750412,
+      "Chilli __Yellowish": 0.020600000396370888,
+      "Chilli__Anthracnos": 9.999999747378752e-05,
+      "Chilli__Damping_Off": 0.003100000089034438,
+      "Chilli__Leaf_Curl_Virus": 0.7839000225067139,
+      "Chilli__Leaf_Spot": 0.016599999740719795,
+      "Chilli__Veinal_Mottle_Virus": 0.0,
+      "Chilli___healthy": 0.0027000000700354576
+    }
+  },
+  {
+    "filename": "images (19).jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (19).jpg",
+    "index_in_test": 50,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli __Yellowish",
+    "confidence": 0.9435,
+    "confidence_pct": 94.35,
+    "width": 289,
+    "height": 175,
+    "probabilities": {
+      "Chilli __Whitefly": 0.0017999999690800905,
+      "Chilli __Yellowish": 0.9434999823570251,
+      "Chilli__Anthracnos": 0.0,
+      "Chilli__Damping_Off": 0.0,
+      "Chilli__Leaf_Curl_Virus": 0.04039999842643738,
+      "Chilli__Leaf_Spot": 0.0142000000923872,
+      "Chilli__Veinal_Mottle_Virus": 0.0,
+      "Chilli___healthy": 0.0
+    }
+  },
+  {
+    "filename": "images (2)a.jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (2)a.jpg",
+    "index_in_test": 51,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli__Leaf_Curl_Virus",
+    "confidence": 0.77,
+    "confidence_pct": 77.0,
+    "width": 275,
+    "height": 183,
+    "probabilities": {
+      "Chilli __Whitefly": 0.024399999529123306,
+      "Chilli __Yellowish": 0.15440000593662262,
+      "Chilli__Anthracnos": 0.003000000026077032,
+      "Chilli__Damping_Off": 0.004699999932199717,
+      "Chilli__Leaf_Curl_Virus": 0.7699999809265137,
+      "Chilli__Leaf_Spot": 0.03849999979138374,
+      "Chilli__Veinal_Mottle_Virus": 0.0044999998062849045,
+      "Chilli___healthy": 0.00039999998989515007
+    }
+  },
+  {
+    "filename": "images (23).jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (23).jpg",
+    "index_in_test": 52,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli __Yellowish",
+    "confidence": 0.8024,
+    "confidence_pct": 80.24,
+    "width": 275,
+    "height": 183,
+    "probabilities": {
+      "Chilli __Whitefly": 0.02199999988079071,
+      "Chilli __Yellowish": 0.8023999929428101,
+      "Chilli__Anthracnos": 0.0,
+      "Chilli__Damping_Off": 0.0,
+      "Chilli__Leaf_Curl_Virus": 0.16359999775886536,
+      "Chilli__Leaf_Spot": 0.011800000444054604,
+      "Chilli__Veinal_Mottle_Virus": 0.00019999999494757503,
+      "Chilli___healthy": 9.999999747378752e-05
+    }
+  },
+  {
+    "filename": "images (25)a.jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (25)a.jpg",
+    "index_in_test": 53,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli__Leaf_Curl_Virus",
+    "confidence": 0.5619,
+    "confidence_pct": 56.19,
+    "width": 252,
+    "height": 200,
+    "probabilities": {
+      "Chilli __Whitefly": 0.00019999999494757503,
+      "Chilli __Yellowish": 0.4345000088214874,
+      "Chilli__Anthracnos": 0.0005000000237487257,
+      "Chilli__Damping_Off": 9.999999747378752e-05,
+      "Chilli__Leaf_Curl_Virus": 0.5619000196456909,
+      "Chilli__Leaf_Spot": 0.0027000000700354576,
+      "Chilli__Veinal_Mottle_Virus": 9.999999747378752e-05,
+      "Chilli___healthy": 0.0
+    }
+  },
+  {
+    "filename": "images (31)a.jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (31)a.jpg",
+    "index_in_test": 54,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli__Leaf_Curl_Virus",
+    "confidence": 0.2643,
+    "confidence_pct": 26.43,
+    "width": 236,
+    "height": 214,
+    "probabilities": {
+      "Chilli __Whitefly": 0.2240000069141388,
+      "Chilli __Yellowish": 0.0333000011742115,
+      "Chilli__Anthracnos": 0.006099999882280827,
+      "Chilli__Damping_Off": 0.2378000020980835,
+      "Chilli__Leaf_Curl_Virus": 0.26429998874664307,
+      "Chilli__Leaf_Spot": 0.010700000450015068,
+      "Chilli__Veinal_Mottle_Virus": 9.999999747378752e-05,
+      "Chilli___healthy": 0.22360000014305115
+    }
+  },
+  {
+    "filename": "images (36).jpg",
+    "filepath": "src\\data_clean\\test\\Chilli__Leaf_Curl_Virus\\images (36).jpg",
+    "index_in_test": 55,
+    "true_label": "Chilli__Leaf_Curl_Virus",
+    "predicted_label": "Chilli__Leaf_Curl_Virus",
+    "confidence": 0.8934,
+    "confidence_pct": 89.34,
+    "width": 259,
+    "height": 194,
+    "probabilities": {
+      "Chilli __Whitefly": 0.0027000000700354576,
+      "Chilli __Yellowish": 0.004800000227987766,
+      "Chilli__Anthracnos": 0.01640000008046627,
+      "Chilli__Damping_Off": 0.0006000000284984708,
+      "Chilli__Leaf_Curl_Virus": 0.8934000134468079,
+      "Chilli__Leaf_Spot": 0.01080000028014183,
+      "Chilli__Veinal_Mottle_Virus": 0.0,
+      "Chilli___healthy": 0.07129999995231628
+    }
+  }
+]

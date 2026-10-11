@@ -1,0 +1,139 @@
+{
+  "experiment_name": "leafcurl_exp01",
+  "freeze_status": "FROZEN_IMMUTABLE",
+  "model_checkpoint": "ml/models/mirchi_rakshak_leafcurl_exp01.keras",
+  "stage1_checkpoint": "ml/models/mirchi_rakshak_leafcurl_exp01_stage1.keras",
+  "model_architecture": {
+    "backbone": "MobileNetV3Large (ImageNet pretrained)",
+    "input_resolution": [
+      224,
+      224,
+      3
+    ],
+    "preprocessing": "MobileNetV3 built-in rescaling [0, 255] -> [-1, 1]",
+    "augmentation": [
+      "RandomFlip('horizontal')",
+      "RandomRotation(0.08)",
+      "RandomZoom(0.10)",
+      "RandomTranslation(0.05, 0.05)",
+      "RandomContrast(0.10)"
+    ],
+    "head": [
+      "GlobalAveragePooling2D",
+      "Dropout(0.30)",
+      "Dense(8, activation='softmax')"
+    ]
+  },
+  "dataset_version": {
+    "name": "src/data_clean (Leaf Curl Candidate Expansion - Exp 01)",
+    "train_samples": 2295,
+    "validation_samples": 246,
+    "test_samples": 246,
+    "leaf_curl_train_samples": 408,
+    "leaf_curl_validation_samples": 8,
+    "leaf_curl_test_samples": 8,
+    "class_mapping": {
+      "0": "Chilli __Whitefly",
+      "1": "Chilli __Yellowish",
+      "2": "Chilli__Anthracnos",
+      "3": "Chilli__Damping_Off",
+      "4": "Chilli__Leaf_Curl_Virus",
+      "5": "Chilli__Leaf_Spot",
+      "6": "Chilli__Veinal_Mottle_Virus",
+      "7": "Chilli___healthy"
+    }
+  },
+  "training_configuration": {
+    "seed": 42,
+    "batch_size": 32,
+    "class_weighting": "Balanced class weights computed strictly from train set counts",
+    "stage_1": {
+      "frozen_layers": "All backbone layers frozen",
+      "learning_rate": 0.001,
+      "optimizer": "Adam",
+      "early_stopping_monitor": "val_loss",
+      "patience": 4
+    },
+    "stage_2": {
+      "unfrozen_layers": "Final 40 backbone layers unfrozen (BatchNormalization frozen)",
+      "learning_rate": 1e-05,
+      "optimizer": "Adam",
+      "early_stopping_monitor": "val_loss",
+      "patience": 3
+    }
+  },
+  "evaluation_results": {
+    "test_loss": 0.3064,
+    "test_accuracy": 0.9024,
+    "weighted_f1": 0.9055,
+    "macro_f1": 0.7877,
+    "macro_recall": 0.8181,
+    "macro_precision": 0.764,
+    "per_class": {
+      "Chilli __Whitefly": {
+        "precision": 0.7273,
+        "recall": 0.8,
+        "f1-score": 0.7619,
+        "support": 10,
+        "correct": 8,
+        "incorrect": 2
+      },
+      "Chilli __Yellowish": {
+        "precision": 0.5455,
+        "recall": 0.75,
+        "f1-score": 0.6316,
+        "support": 8,
+        "correct": 6,
+        "incorrect": 2
+      },
+      "Chilli__Anthracnos": {
+        "precision": 0.8276,
+        "recall": 0.8889,
+        "f1-score": 0.8571,
+        "support": 27,
+        "correct": 24,
+        "incorrect": 3
+      },
+      "Chilli__Damping_Off": {
+        "precision": 0.6667,
+        "recall": 0.6667,
+        "f1-score": 0.6667,
+        "support": 3,
+        "correct": 2,
+        "incorrect": 1
+      },
+      "Chilli__Leaf_Curl_Virus": {
+        "precision": 0.625,
+        "recall": 0.625,
+        "f1-score": 0.625,
+        "support": 8,
+        "correct": 5,
+        "incorrect": 3
+      },
+      "Chilli__Leaf_Spot": {
+        "precision": 0.75,
+        "recall": 0.9,
+        "f1-score": 0.8182,
+        "support": 10,
+        "correct": 9,
+        "incorrect": 1
+      },
+      "Chilli__Veinal_Mottle_Virus": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 40,
+        "correct": 40,
+        "incorrect": 0
+      },
+      "Chilli___healthy": {
+        "precision": 0.9697,
+        "recall": 0.9143,
+        "f1-score": 0.9412,
+        "support": 140,
+        "correct": 128,
+        "incorrect": 12
+      }
+    }
+  }
+}

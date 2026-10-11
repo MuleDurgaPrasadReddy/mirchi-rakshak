@@ -1,0 +1,155 @@
+{
+  "investigation_summary": {
+    "target_classes": [
+      "Chilli__Leaf_Curl_Virus",
+      "Chilli __Yellowish"
+    ],
+    "dataset_path": "src/data_clean",
+    "checkpoint_evaluated": "ml/models/mirchi_rakshak_clean_best_finetuned.keras",
+    "sample_counts": {
+      "leaf_curl": {
+        "train": 60,
+        "validation": 8,
+        "test": 8
+      },
+      "yellowish": {
+        "train": 60,
+        "validation": 8,
+        "test": 8
+      }
+    },
+    "primary_issue": "5 of 8 Leaf Curl test images predicted as Yellowish, 2 of 8 as Whitefly, only 1 of 8 predicted correctly as Leaf Curl Virus. Simultaneously, multiple Yellowish images are predicted as Leaf Curl Virus."
+  },
+  "suspicious_filenames": [
+    {
+      "filename": "yellowish01.jpg",
+      "current_location": "src/data_clean/train/Chilli__Leaf_Curl_Virus/yellowish01.jpg",
+      "issue": "File is explicitly named 'yellowish01.jpg' but placed inside the Leaf Curl Virus training folder. Model predicts it as Yellowish with 60.3% confidence.",
+      "suspected_correct_class": "Chilli __Yellowish"
+    },
+    {
+      "filename": "yellowish16.jpg",
+      "current_location": "src/data_clean/train/Chilli __Yellowish/yellowish16.jpg",
+      "issue": "Model predicts as Leaf Curl Virus with 80.7% confidence due to visible leaf rolling and edge curling.",
+      "suspected_correct_class": "Chilli__Leaf_Curl_Virus or Ambiguous"
+    },
+    {
+      "filename": "yellowisha04.jpg",
+      "current_location": "src/data_clean/train/Chilli __Yellowish/yellowisha04.jpg",
+      "issue": "Model predicts as Leaf Curl Virus with 81.6% confidence. Image shows severe leaf deformation and crinkling.",
+      "suspected_correct_class": "Chilli__Leaf_Curl_Virus"
+    },
+    {
+      "filename": "yellowish26.jpg",
+      "current_location": "src/data_clean/test/Chilli __Yellowish/yellowish26.jpg",
+      "issue": "Test image in Yellowish predicted as Leaf Curl Virus with 77.1% confidence.",
+      "suspected_correct_class": "Chilli__Leaf_Curl_Virus or Ambiguous"
+    },
+    {
+      "filename": "yellowish02 (1).jpg",
+      "current_location": "src/data_clean/test/Chilli __Yellowish/yellowish02 (1).jpg",
+      "issue": "Test image in Yellowish predicted as Anthracnose with 66.0% confidence due to brown leaf spots/necrotic lesions.",
+      "suspected_correct_class": "Chilli__Anthracnos or Mixed Infection"
+    }
+  ],
+  "suspected_label_problems": [
+    {
+      "description": "Biological Symptom Overlap (ChiLCV vs Nitrogen Chlorosis)",
+      "details": "Chilli Leaf Curl Virus (ChiLCV) infection inherently causes leaf chlorosis (yellowing) alongside puckering/curling. Conversely, severe nitrogen deficiency (Yellowish) causes leaves to dry and roll upward at edges. The dataset treats these as mutually exclusive visual classes, causing high label noise."
+    },
+    {
+      "description": "Misfiled File (yellowish01.jpg)",
+      "details": "Filename 'yellowish01.jpg' in train/Chilli__Leaf_Curl_Virus is a directory placement error from original dataset splitting."
+    },
+    {
+      "description": "Vector Symptom Confounding (Whitefly vs Leaf Curl Virus)",
+      "details": "Whitefly (Bemisia tabaci) is the vector for Leaf Curl Virus. Test images 'images (10)a.jpg' and 'images (31)a.jpg' in Leaf Curl test set exhibit whitefly damage and feeding marks, causing the model to predict Whitefly (53.4% and 38.4% confidence)."
+    }
+  ],
+  "image_quality_problems": [
+    {
+      "problem": "Resolution & Scale Variance",
+      "details": "Image resolutions range from small web thumbnails (150x150 pixels) to larger camera photos (300x250 pixels). Resizing to 224x224 creates compression artifacts on small leaves."
+    },
+    {
+      "problem": "Lighting & White Balance Discrepancies",
+      "details": "Direct outdoor sunlight in certain images (e.g., 'images (2)a.jpg') creates intense glare that inflates RGB yellow levels, while indoor flash photos have artificial cool shadows."
+    },
+    {
+      "problem": "Background Noise",
+      "details": "Images feature heterogeneous backgrounds including dark brown soil, green weeds, gray concrete, or artificial white backdrop. In 'download (4).jpg', background soil and dried leaves contribute to yellow/brown color bias."
+    }
+  ],
+  "train_test_distribution_differences": [
+    {
+      "metric": "Yellowish Color Index (Mean R+G / 2B)",
+      "leaf_curl_train_mean": 1.733,
+      "leaf_curl_test_mean": 1.512,
+      "yellowish_train_mean": 1.996,
+      "yellowish_test_mean": 2.208,
+      "observation": "Test Yellowish images have significantly higher yellow color index (2.208 vs 1.996 in train). Meanwhile, Leaf Curl test images with high yellow index ('download (4).jpg' at 1.829, 'images (25)a.jpg' at 2.177) fall directly into the Yellowish color cluster."
+    },
+    {
+      "metric": "Sample Size Imbalance",
+      "train_samples_per_class": 60,
+      "test_samples_per_class": 8,
+      "observation": "With only 8 test samples per class, misclassifying 5 Leaf Curl test images drops class accuracy from 100% down to 12.5%, magnifying small visual ambiguities."
+    }
+  ],
+  "visual_ambiguity_observations": [
+    "Images with strong leaf chlorosis (yellowing) but subtle curling are consistently classified as Yellowish by the model.",
+    "Images with upward curled leaf margins but minimal chlorosis in the Yellowish class are classified as Leaf Curl Virus.",
+    "Images displaying white powdery residue or whitefly insects on curled leaves trigger the Whitefly classifier."
+  ],
+  "test_images_most_responsible_for_model_confusion": [
+    {
+      "filename": "download (4).jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Yellowish",
+      "confidence": 0.953,
+      "reason": "Dominant yellow leaf color and background soil bias (Yellow Index 1.829). Leaf curling is minimal in frame."
+    },
+    {
+      "filename": "images (25)a.jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Yellowish",
+      "confidence": 0.864,
+      "reason": "Severe interveinal chlorosis (Yellow Index 2.177), closely matching Yellowish training examples."
+    },
+    {
+      "filename": "images (23).jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Yellowish",
+      "confidence": 0.733,
+      "reason": "Yellow-green leaf coloration dominates image (Yellow Index 1.606)."
+    },
+    {
+      "filename": "images (19).jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Yellowish",
+      "confidence": 0.54,
+      "reason": "Moderate yellowing chlorosis with subtle leaf puckering."
+    },
+    {
+      "filename": "images (2)a.jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Yellowish",
+      "confidence": 0.545,
+      "reason": "Overexposed outdoor lighting and background color artifacts."
+    },
+    {
+      "filename": "images (10)a.jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Whitefly",
+      "confidence": 0.498,
+      "reason": "Whitefly vector feeding damage visible on leaves."
+    },
+    {
+      "filename": "images (31)a.jpg",
+      "actual_class": "Leaf Curl Virus",
+      "predicted_class": "Damping Off / Whitefly",
+      "confidence": 0.384,
+      "reason": "Low confidence split across Whitefly, Damping Off, and Leaf Curl due to wilted stems and spotty leaves."
+    }
+  ]
+}

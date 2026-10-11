@@ -1,0 +1,20 @@
+{
+  "test_loss": 0.1214,
+  "test_accuracy": 0.9527,
+  "macro_precision": 0.9269,
+  "macro_recall": 0.9495,
+  "macro_f1": 0.9373,
+  "weighted_precision": 0.9549,
+  "weighted_recall": 0.9527,
+  "weighted_f1": 0.9529,
+  "class_names": [
+    "Chilli __Whitefly",
+    "Chilli __Yellowish",
+    "Chilli__Anthracnos",
+    "Chilli__Damping_Off",
+    "Chilli__Leaf_Curl_Virus",
+    "Chilli__Leaf_Spot",
+    "Chilli__Veinal_Mottle_Virus",
+    "Chilli___healthy"
+  ]
+}

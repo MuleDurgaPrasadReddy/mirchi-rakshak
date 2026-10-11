@@ -1,0 +1,14 @@
+{
+  "classes": {
+    "Chilli __Whitefly": "whitefly",
+    "Chilli __Yellowish": "nitrogen_deficiency",
+    "Chilli__Anthracnos": "anthracnose",
+    "Chilli__Damping_Off": "damping_off",
+    "Chilli__Leaf_Curl_Virus": "leaf_curl",
+    "Chilli__Leaf_Spot": "bacterial_spot",
+    "Chilli__Veinal_Mottle_Virus": "veinal_mottle",
+    "Chilli___healthy": "healthy"
+  },
+  "confidence_threshold": 0.8,
+  "image_size": [224, 224]
+}

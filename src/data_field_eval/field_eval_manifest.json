@@ -1,0 +1,28 @@
+{
+  "dataset_name": "Mirchi Rakshak Independent Field Evaluation Set",
+  "status": "PREPARATION_PHASE",
+  "target_per_class": "50-100 independent images per class",
+  "class_labels": [
+    "Chilli __Whitefly",
+    "Chilli __Yellowish",
+    "Chilli__Anthracnos",
+    "Chilli__Damping_Off",
+    "Chilli__Leaf_Curl_Virus",
+    "Chilli__Leaf_Spot",
+    "Chilli__Veinal_Mottle_Virus",
+    "Chilli___healthy"
+  ],
+  "total_images": 0,
+  "verified_images": 0,
+  "per_class_counts": {
+    "Chilli __Whitefly": 0,
+    "Chilli __Yellowish": 0,
+    "Chilli__Anthracnos": 0,
+    "Chilli__Damping_Off": 0,
+    "Chilli__Leaf_Curl_Virus": 0,
+    "Chilli__Leaf_Spot": 0,
+    "Chilli__Veinal_Mottle_Virus": 0,
+    "Chilli___healthy": 0
+  },
+  "images": []
+}

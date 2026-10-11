@@ -1,0 +1,82 @@
+[
+  {
+    "class_name": "Chilli __Whitefly",
+    "train_count": 416,
+    "validation_count": 52,
+    "test_count": 52,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 520
+  },
+  {
+    "class_name": "Chilli __Yellowish",
+    "train_count": 416,
+    "validation_count": 52,
+    "test_count": 52,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 520
+  },
+  {
+    "class_name": "Chilli__Anthracnos",
+    "train_count": 421,
+    "validation_count": 52,
+    "test_count": 54,
+    "train_percentage": 79.89,
+    "validation_percentage": 9.87,
+    "test_percentage": 10.25,
+    "total_count": 527
+  },
+  {
+    "class_name": "Chilli__Damping_Off",
+    "train_count": 150,
+    "validation_count": 18,
+    "test_count": 20,
+    "train_percentage": 79.79,
+    "validation_percentage": 9.57,
+    "test_percentage": 10.64,
+    "total_count": 188
+  },
+  {
+    "class_name": "Chilli__Leaf_Curl_Virus",
+    "train_count": 416,
+    "validation_count": 52,
+    "test_count": 52,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 520
+  },
+  {
+    "class_name": "Chilli__Leaf_Spot",
+    "train_count": 416,
+    "validation_count": 52,
+    "test_count": 52,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 520
+  },
+  {
+    "class_name": "Chilli__Veinal_Mottle_Virus",
+    "train_count": 1616,
+    "validation_count": 202,
+    "test_count": 202,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 2020
+  },
+  {
+    "class_name": "Chilli___healthy",
+    "train_count": 1552,
+    "validation_count": 194,
+    "test_count": 194,
+    "train_percentage": 80.0,
+    "validation_percentage": 10.0,
+    "test_percentage": 10.0,
+    "total_count": 1940
+  }
+]

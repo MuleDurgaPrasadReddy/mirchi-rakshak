@@ -1,0 +1,114 @@
+{
+  "confusion_matrix": [
+    [
+      9,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      5,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      20,
+      0,
+      0,
+      1,
+      2,
+      4
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      5,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      9,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      40,
+      0
+    ],
+    [
+      1,
+      5,
+      7,
+      0,
+      1,
+      0,
+      2,
+      124
+    ]
+  ],
+  "class_names": [
+    "Chilli __Whitefly",
+    "Chilli __Yellowish",
+    "Chilli__Anthracnos",
+    "Chilli__Damping_Off",
+    "Chilli__Leaf_Curl_Virus",
+    "Chilli__Leaf_Spot",
+    "Chilli__Veinal_Mottle_Virus",
+    "Chilli___healthy"
+  ],
+  "human_names": [
+    "Whitefly",
+    "Yellowish",
+    "Anthracnos",
+    "Damping Off",
+    "Leaf Curl Virus",
+    "Leaf Spot",
+    "Veinal Mottle Virus",
+    "healthy"
+  ],
+  "leaf_curl_breakdown": {
+    "Whitefly": 2,
+    "Yellowish": 5,
+    "Anthracnos": 0,
+    "Damping Off": 0,
+    "Leaf Curl Virus": 1,
+    "Leaf Spot": 0,
+    "Veinal Mottle Virus": 0,
+    "healthy": 0
+  }
+}

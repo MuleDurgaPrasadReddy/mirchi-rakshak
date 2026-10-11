@@ -1,0 +1,24 @@
+{
+  "test_loss": 0.3047,
+  "test_accuracy": 0.8984,
+  "test_accuracy_percentage": 89.84,
+  "total_test_samples": 246,
+  "macro_precision": 0.8078,
+  "macro_recall": 0.7395,
+  "macro_f1": 0.7402,
+  "weighted_precision": 0.9064,
+  "weighted_recall": 0.8984,
+  "weighted_f1": 0.8969,
+  "correct_predictions": 221,
+  "incorrect_predictions": 25,
+  "class_names": [
+    "Chilli __Whitefly",
+    "Chilli __Yellowish",
+    "Chilli__Anthracnos",
+    "Chilli__Damping_Off",
+    "Chilli__Leaf_Curl_Virus",
+    "Chilli__Leaf_Spot",
+    "Chilli__Veinal_Mottle_Virus",
+    "Chilli___healthy"
+  ]
+}

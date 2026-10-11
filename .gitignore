@@ -1,0 +1,61 @@
+# Python virtual environments
+.venv/
+.venv-ml/
+venv/
+env/
+
+# Node dependencies and generated output
+node_modules/
+dist/
+build/
+.vite/
+.output/
+.vinxi/
+.tanstack/
+.nitro/
+.wrangler/
+coverage/
+
+# Environment files and local secrets
+.env*
+!.env.example
+.dev.vars*
+*.local
+*.log
+
+# Python caches and test output
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local datasets and scratch files
+src/data/
+src/data_clean/
+src/data_stratified/
+datasets/
+data/
+external_datasets/
+mirchi_new_data/
+scratch/
+
+# ML model files and archives
+*.keras
+*.h5
+*.pt
+*.pth
+*.onnx
+*.zip
+*.rar
+*.7z
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local Git metadata, editors, and operating-system files
+.git-old/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
