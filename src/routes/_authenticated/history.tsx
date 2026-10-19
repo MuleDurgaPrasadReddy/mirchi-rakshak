@@ -1,15 +1,36 @@
+import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ScanLine } from "lucide-react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { BottomNav } from "@/components/BottomNav";
 import { listScans } from "@/lib/ai.functions";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { loadLocalScans, type ScanRecord } from "@/lib/scans";
 
 const scansQO = queryOptions({
   queryKey: ["scans"],
-  queryFn: () => listScans(),
+  queryFn: async (): Promise<ScanRecord[]> => {
+    try {
+      const res = await listScans();
+      const serverScans = Array.isArray(res) ? (res as ScanRecord[]) : [];
+      if (typeof window !== "undefined") {
+        const localScans = loadLocalScans();
+        const map = new Map<string, ScanRecord>();
+        for (const s of localScans) map.set(s.id, s);
+        for (const s of serverScans) map.set(s.id, s);
+        return Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+      return serverScans;
+    } catch (e) {
+      console.warn("Scans query fallback:", e);
+      if (typeof window !== "undefined") return loadLocalScans();
+      return [];
+    }
+  },
   staleTime: 60 * 1000,
 });
 
@@ -21,7 +42,16 @@ export const Route = createFileRoute("/_authenticated/history")({
 
 function HistoryPage() {
   const { t } = useLang();
+  const qc = useQueryClient();
   const scans = useSuspenseQuery(scansQO).data;
+
+  useEffect(() => {
+    const handleScansUpdate = () => {
+      qc.invalidateQueries({ queryKey: ["scans"] });
+    };
+    window.addEventListener("mirchi_scans_updated", handleScansUpdate);
+    return () => window.removeEventListener("mirchi_scans_updated", handleScansUpdate);
+  }, [qc]);
   const isUnmatched = (scan: (typeof scans)[number]) =>
     scan.is_chili_leaf === false || scan.disease?.toLowerCase().includes("not matched");
 
@@ -65,7 +95,7 @@ function HistoryPage() {
                   <span className="text-[10px] text-stone-400 shrink-0">{new Date(s.created_at).toLocaleDateString()}</span>
                 </div>
                 <p className={cn("text-xs font-semibold", isUnmatched(s) ? "text-red-700" : s.is_healthy ? "text-leaf-600" : "text-chili-600")}>
-                  {isUnmatched(s) ? t("scanAgain") : `${s.is_healthy ? t("healthy") : t("actionRequired")} · ${Number(s.confidence).toFixed(0)}% · ${s.severity}`}
+                  {isUnmatched(s) ? t("scanAgain") : `${s.is_healthy ? t("healthy") : t("actionRequired")} · ${s.severity}`}
                 </p>
                 {(s.invalid_reason || s.recommendation) && (
                   <p className="text-xs text-stone-500 mt-1 line-clamp-2">{isUnmatched(s) ? s.invalid_reason || s.recommendation : s.recommendation}</p>

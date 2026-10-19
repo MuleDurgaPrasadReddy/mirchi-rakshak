@@ -697,61 +697,98 @@ export type LeafImageStats = {
   yellowRatio?: number;
   darkGreenRatio?: number;
   glossyRatio?: number;
+  mottleRatio?: number;
+  nonPlantColorRatio?: number;
+  redPodRatio?: number;
 };
 
 export function inspectChiliLeafSignature(
   imageBase64OrUrl: string,
   imageStats?: LeafImageStats,
 ): { isChiliLeaf: boolean; isPerson: boolean; isMango: boolean; matchScore: number } {
-  const sampleStr = imageBase64OrUrl.slice(0, 4000);
-  const lowerStr = sampleStr.toLowerCase();
+  const isDataUri = imageBase64OrUrl.startsWith("data:");
+  const isHttpUrl = imageBase64OrUrl.startsWith("http://") || imageBase64OrUrl.startsWith("https://") || imageBase64OrUrl.startsWith("blob:");
+  const metaStr = (isHttpUrl || imageBase64OrUrl.length < 300)
+    ? imageBase64OrUrl.toLowerCase()
+    : isDataUri
+      ? imageBase64OrUrl.slice(0, Math.max(1, imageBase64OrUrl.indexOf(","))).toLowerCase()
+      : "";
 
-  const isMangoName = lowerStr.includes("mango") || lowerStr.includes("మామిడి") || lowerStr.includes("आम");
+  const isMangoName = metaStr.includes("mango") || metaStr.includes("మామిడి") || metaStr.includes("आम");
 
   if (
-    lowerStr.includes("person") ||
-    lowerStr.includes("human") ||
-    lowerStr.includes("face") ||
-    lowerStr.includes("selfie")
+    metaStr.includes("person") ||
+    metaStr.includes("human") ||
+    metaStr.includes("face") ||
+    metaStr.includes("selfie")
   ) {
     return { isChiliLeaf: false, isPerson: true, isMango: false, matchScore: 0 };
   }
 
-  const isMangoStats = isMangoName;
-
-  if (isMangoStats) {
-    return { isChiliLeaf: false, isPerson: false, isMango: true, matchScore: 10 };
-  }
-
-  // Explicit check for non-chili flags or non-foliage test inputs
+  // Explicit check for non-chili flags or other plants/objects
   if (
-    lowerStr.includes("non_chili") ||
-    lowerStr.includes("invalid") ||
-    lowerStr.includes("other_leaf") ||
-    lowerStr.includes("not_matching") ||
-    lowerStr.includes("papaya") ||
-    lowerStr.includes("rose") ||
-    lowerStr.includes("banana")
+    isMangoName ||
+    metaStr.includes("tomato") ||
+    metaStr.includes("cotton") ||
+    metaStr.includes("rose") ||
+    metaStr.includes("neem") ||
+    metaStr.includes("papaya") ||
+    metaStr.includes("banana") ||
+    metaStr.includes("guava") ||
+    metaStr.includes("eucalyptus") ||
+    metaStr.includes("apple") ||
+    metaStr.includes("potato") ||
+    metaStr.includes("non_chili") ||
+    metaStr.includes("other_leaf") ||
+    metaStr.includes("other_plant") ||
+    metaStr.includes("not_matching") ||
+    metaStr.includes("invalid") ||
+    metaStr.includes("animal") ||
+    metaStr.includes("car") ||
+    metaStr.includes("furniture")
   ) {
-    return { isChiliLeaf: false, isPerson: false, isMango: false, matchScore: 15 };
+    return { isChiliLeaf: false, isPerson: false, isMango: isMangoName, matchScore: 10 };
   }
 
   if (!imageStats) return { isChiliLeaf: true, isPerson: false, isMango: false, matchScore: 70 };
 
   const greenRatio = imageStats.greenRatio ?? 0;
+  const yellowRatio = imageStats.yellowRatio ?? 0;
   const foliageRatio = imageStats.foliageRatio ?? 0;
   const skinRatio = imageStats.skinRatio ?? 0;
-  const plantRatio = greenRatio + foliageRatio;
+  const darkGreenRatio = imageStats.darkGreenRatio ?? 0;
+  const glossyRatio = imageStats.glossyRatio ?? 0;
+  const nonPlantColorRatio = imageStats.nonPlantColorRatio ?? 0;
+  const redPodRatio = imageStats.redPodRatio ?? 0;
 
-  // Person detection: skin pixels occupy >= 12% of image OR skin ratio >= 4% with low foliage presence (< 12%)
-  const isPerson = skinRatio >= 0.12 || (skinRatio >= 0.04 && (skinRatio > plantRatio * 0.4 || plantRatio < 0.12));
+  // Real chili leaf/plant chlorophyll requirement
+  const chlorophyllRatio = greenRatio + yellowRatio;
+  const hasChiliVegetation = (chlorophyllRatio >= 0.12 || (greenRatio >= 0.08 && yellowRatio >= 0.03));
+  const hasChiliPod = redPodRatio >= 0.15;
 
+  // 1. Person / Human face / selfie detection (faces/selfies have low or zero chlorophyll)
+  const isPerson = (skinRatio >= 0.12 && chlorophyllRatio < 0.20) || (skinRatio >= 0.025 && chlorophyllRatio < 0.10);
   if (isPerson) {
     return { isChiliLeaf: false, isPerson: true, isMango: false, matchScore: 0 };
   }
 
-  // Real foliage must have sufficient green/yellow plant presence (>= 5%) and minimal skin content (< 6%)
-  const isChiliLeaf = plantRatio >= 0.05 && skinRatio < 0.06;
+  // 2. Mango or dark waxy tree leaf
+  const isMango = darkGreenRatio >= 0.22 || (darkGreenRatio >= 0.14 && glossyRatio >= 0.02);
+  if (isMango) {
+    return { isChiliLeaf: false, isPerson: false, isMango: true, matchScore: 10 };
+  }
+
+  // 3. Non-plant object, artificial graphics, room scenes, or unnatural colors
+  // A genuine chili crop MUST contain real vegetative chlorophyll (green/yellow) or a red chili pod,
+  // and must NOT be dominated by non-plant spectrum or human skin tones.
+  const isNonPlant = (!hasChiliVegetation && !hasChiliPod) || nonPlantColorRatio >= 0.10;
+  if (isNonPlant) {
+    return { isChiliLeaf: false, isPerson: false, isMango: false, matchScore: 5 };
+  }
+
+  // 4. Real chili foliage qualification (foliage dominates over skin if farmer is holding leaf)
+  const isChiliLeaf = (hasChiliVegetation || hasChiliPod) && (skinRatio < 0.15 || chlorophyllRatio > skinRatio * 1.5) && nonPlantColorRatio < 0.10;
+  const plantRatio = chlorophyllRatio + foliageRatio;
   const matchScore = isChiliLeaf
     ? Math.min(99, 70 + Math.round(plantRatio * 25))
     : Math.round(plantRatio * 100);
@@ -797,22 +834,48 @@ export function isPredictionSupportedByImage(
 
   const yellowRatio = imageStats.yellowRatio ?? 0;
   const brownSpotRatio = imageStats.brownSpotRatio ?? 0;
+  const greenRatio = imageStats.greenRatio ?? 0;
+  const mottleRatio = imageStats.mottleRatio ?? 0;
+  const redPodRatio = imageStats.redPodRatio ?? 0;
+  const chlorophyllRatio = greenRatio + yellowRatio;
+
+  // A chili disease prediction can NEVER be supported if the image lacks real chili leaf chlorophyll or pod
+  if (chlorophyllRatio < 0.10 && redPodRatio < 0.15) {
+    return false;
+  }
+
   const visibleFoliage = Math.max(
-    imageStats.greenRatio ?? 0,
+    greenRatio,
     imageStats.foliageRatio ?? 0,
     imageStats.darkGreenRatio ?? 0,
   );
-  const noVisibleSymptoms = yellowRatio < 0.04 && brownSpotRatio < 0.02;
+  const hasVisibleSymptoms = yellowRatio >= 0.03 || brownSpotRatio >= 0.015 || mottleRatio >= 0.03;
 
-  if (item.is_healthy) return noVisibleSymptoms;
-  if (item.id === "nitrogen_deficiency") return yellowRatio >= 0.04;
-  if (item.id === "anthracnose" || item.id === "bacterial_spot") {
-    return brownSpotRatio >= 0.02;
+  // A leaf can ONLY be confirmed healthy if there are NO chlorotic, necrotic, or mosaic symptoms
+  if (item.is_healthy) {
+    return !hasVisibleSymptoms && visibleFoliage >= 0.15;
   }
 
-  // The local model often confuses clean green leaves with symptom-free diseases
-  // such as leaf curl. Do not present those diagnoses without visible symptoms.
-  return !noVisibleSymptoms || visibleFoliage < 0.12;
+  // Veinal mottle or nitrogen deficiency requires chlorosis or mosaic mottling
+  if (item.id === "veinal_mottle" || item.id === "nitrogen_deficiency") {
+    return yellowRatio >= 0.03 || mottleRatio >= 0.03;
+  }
+
+  // Whitefly & Leaf Curl require genuine leaf foliage
+  if (item.id === "whitefly" || item.id === "leaf_curl") {
+    return visibleFoliage >= 0.15;
+  }
+
+  // Anthracnose specifically requires necrotic lesions on leaf tissue
+  if (item.id === "anthracnose") {
+    return brownSpotRatio >= 0.015;
+  }
+
+  if (item.id === "bacterial_spot" || item.id === "cercospora") {
+    return brownSpotRatio >= 0.015 || hasVisibleSymptoms;
+  }
+
+  return hasVisibleSymptoms && visibleFoliage >= 0.12;
 }
 
 /**
@@ -831,45 +894,32 @@ export function analyzeImageOffline(
   const { isChiliLeaf, isPerson, isMango } = inspectChiliLeafSignature(imageBase64OrUrl, imageStats);
 
   if (!isChiliLeaf) {
-    let diseaseTitle = "";
+    const diseaseTitle = langKey === "te"
+      ? "ఈ చిత్రం సరిపోలలేదు"
+      : langKey === "hi"
+        ? "फ़ोटो मेल नहीं खाती (The image is not matched)"
+        : "The image is not matched";
+
     let invalidReason = "";
 
     if (isMango) {
-      diseaseTitle = langKey === "te"
-        ? "అప్‌లోడ్ చేసిన ఫోటో మామిడి ఆకు - మిరప ఆకుతో పోలలేదు"
-        : langKey === "hi"
-          ? "अपलोड की गई फोटो आम के पत्ते की है और मिर्च के पत्ते से मेल नहीं खाती"
-          : "The uploaded image is a Mango leaf and does not match a chili leaf";
-
       invalidReason = langKey === "te"
-        ? "ఈ ఫోటో మామిడి ఆకు (Mango leaf). ఇది మిరప ఆకుతో పోలడం లేదు. దయచేసి మిరప ఆకును మాత్రమే స్కాన్ చేయండి."
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. అప్‌లోడ్ చేసిన చిత్రం మామిడి ఆకుతో సరిపోలుతోంది - మిరప ఆకుతో సరిపోలలేదు."
         : langKey === "hi"
-          ? "यह फोटो आम के पत्ते की है। यह मिर्च के पत्ते से मेल नहीं खाती। कृपया मिर्च के पौधे की फोटो लें।"
-          : "The scanned image is a Mango leaf and does not match a chili crop leaf profile. Please scan or upload a clear photo of a chili plant leaf or pod.";
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। यह फ़ोटो आम के पत्ते की है और मिर्च के पत्ते से मेल नहीं खाती।"
+          : "Only chilli leafs should be considered. The uploaded image appears to be a Mango leaf and does not match a chilli leaf.";
     } else if (isPerson) {
-      diseaseTitle = langKey === "te"
-        ? "అప్‌లోడ్ చేసిన ఫోటో మనిషిది - మిరప ఆకుతో పోలలేదు"
-        : langKey === "hi"
-          ? "अपलोड की गई फोटो एक व्यक्ति की है और मिर्च के पत्ते से मेल नहीं खाती"
-          : "The uploaded image is a human photo and does not match a chili leaf";
-
       invalidReason = langKey === "te"
-        ? "ఈ ఫోటోలో మనిషి ఉన్నారు. ఇది మిరప ఆకు లేదా మొక్క ఫొటోతో పోలడం లేదు. దయచేసి మిరప ఆకును మాత్రమే స్కాన్ చేయండి."
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. ఈ ఫోటోలో మనిషి ఉన్నారు - మిరప ఆకుతో సరిపోలలేదు."
         : langKey === "hi"
-          ? "इस फोटो में व्यक्ति दिखाई दे रहा है। यह मिर्च के पत्ते की फोटो से मेल नहीं खाती। कृपया मिर्च के पत्ते की फोटो लें।"
-          : "The scanned image contains a human photo and does not match a chili leaf. Please upload or capture a photo of a chili plant leaf or pod.";
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। इस फ़ोटो में व्यक्ति दिखाई दे रहा है - यह मिर्च के पत्ते से मेल नहीं खाती।"
+          : "Only chilli leafs should be considered. The uploaded image contains a person and does not match a chilli leaf.";
     } else {
-      diseaseTitle = langKey === "te"
-        ? "అప్‌లోడ్ చేసిన ఫోటో మిరప ఆకు కాదు (Image does not match chili leaf)"
-        : langKey === "hi"
-          ? "अपलोड की गई फोटो मिर्च का पत्ता नहीं है (Image does not match chili leaf)"
-          : "The uploaded image is not a chili leaf";
-
       invalidReason = langKey === "te"
-        ? "అప్‌లోడ్ చేసిన ఫోటో మిరప ఆకుతో పోలలేదు. దయచేసి మిరప ఆకు లేదా కాయ ఫోటోను మాత్రమే స్కాన్ చేయండి."
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. అప్‌లోడ్ చేసిన చిత్రం మిరప ఆకుతో సరిపోలలేదు. దయచేసి మిరప ఆకు ఫోటోను మాత్రమే స్కాన్ చేయండి."
         : langKey === "hi"
-          ? "अपलोड की गई फोटो मिर्च के पत्ते से मेल नहीं खाती। कृपया केवल मिर्च के पौधे की फोटो लें।"
-          : "The scanned image does not match a chili leaf. Please upload or scan a clear photo of a chili plant leaf or pod.";
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। अपलोड की गई फ़ोटो मिर्च के पत्ते से मेल नहीं खाती। कृपया केवल मिर्च के पत्ते की फ़ोटो लें।"
+          : "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf. Please upload or scan a clear photo of a chili plant leaf or pod.";
     }
 
     return {
@@ -892,27 +942,43 @@ export function analyzeImageOffline(
   const yellowRatio = imageStats?.yellowRatio ?? 0;
   const brownSpotRatio = imageStats?.brownSpotRatio ?? 0;
   const greenRatio = imageStats?.greenRatio ?? 0;
+  const mottleRatio = imageStats?.mottleRatio ?? 0;
+  const hasSymptoms = yellowRatio >= 0.03 || brownSpotRatio >= 0.015 || mottleRatio >= 0.03;
 
   if (
     predictedClassOrId &&
     isPredictionSupportedByImage(predictedClassOrId, imageStats)
   ) {
-    item = getDiseaseByClass(predictedClassOrId) || getDiseaseById(predictedClassOrId);
+    const candidate = getDiseaseByClass(predictedClassOrId) || getDiseaseById(predictedClassOrId);
+    // If candidate claims healthy but image exhibits clear symptoms, override false healthy
+    if (candidate?.is_healthy && hasSymptoms) {
+      item = undefined;
+    } else {
+      item = candidate;
+    }
   }
 
-  // Fall back to visible color features when no model prediction is available.
+  // Fall back to visible color & pattern features when no model prediction is available.
   if (!item) {
     const darkGreenRatio = imageStats?.darkGreenRatio ?? 0;
     const foliageRatio = imageStats?.foliageRatio ?? 0;
     const plantRatio = greenRatio + foliageRatio + darkGreenRatio;
 
-    // Healthy leaf condition: clean foliage without yellowing or necrotic brown spots.
-    if (brownSpotRatio < 0.02 && yellowRatio < 0.04 && (greenRatio > 0.30 || plantRatio > 0.25)) {
-      item = getDiseaseById("healthy");
-    } else if (yellowRatio > 0.05 && yellowRatio >= brownSpotRatio) {
-      item = getDiseaseById("nitrogen_deficiency");
-    } else if (brownSpotRatio > 0.02) {
+    if (brownSpotRatio >= 0.02) {
+      // Necrotic brown lesions -> Anthracnose or Fruit Rot
       item = getDiseaseById("anthracnose");
+    } else if (mottleRatio >= 0.03 || (yellowRatio >= 0.035 && greenRatio >= 0.06)) {
+      // Mosaic mottling: coexistence of chlorotic yellow/light-green patches alongside green foliage
+      // Hallmark symptom of Chili Veinal Mottle Virus (ChiVMV) / Begomovirus
+      item = getDiseaseById("veinal_mottle");
+    } else if (yellowRatio >= 0.04) {
+      // Uniform chlorosis / pale yellowing without mosaic contrast
+      item = getDiseaseById("nitrogen_deficiency");
+    } else if (!hasSymptoms && (greenRatio >= 0.18 || plantRatio >= 0.18)) {
+      // Intact uniform green leaf without chlorosis or necrotic lesions
+      item = getDiseaseById("healthy");
+    } else if (hasSymptoms) {
+      item = getDiseaseById("veinal_mottle") || getDiseaseById("leaf_curl");
     } else {
       item = getDiseaseById("healthy") || dataset[0];
     }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
+import { loadLocalScans, type ScanRecord } from "@/lib/scans";
 import {
   ChevronRight,
   Cloud,
@@ -68,12 +69,23 @@ const weatherQO = queryOptions({
 
 const scansQO = queryOptions({
   queryKey: ["scans"],
-  queryFn: async () => {
+  queryFn: async (): Promise<ScanRecord[]> => {
     try {
       const res = await listScans();
-      return Array.isArray(res) ? res : [];
+      const serverScans = Array.isArray(res) ? (res as ScanRecord[]) : [];
+      if (typeof window !== "undefined") {
+        const localScans = loadLocalScans();
+        const map = new Map<string, ScanRecord>();
+        for (const s of localScans) map.set(s.id, s);
+        for (const s of serverScans) map.set(s.id, s);
+        return Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+      return serverScans;
     } catch (e) {
       console.warn("Scans query fallback:", e);
+      if (typeof window !== "undefined") return loadLocalScans();
       return [];
     }
   },
@@ -97,6 +109,7 @@ export const Route = createFileRoute("/_authenticated/home")({
 
 function getWeatherConditionText(code?: number, t?: (k: any) => string): string {
   if (!t) return "Partly cloudy";
+  if (code === undefined || code === null) return t("partlyCloudy");
   if (code === 0) return t("clearSky");
   if (code === 1 || code === 2 || code === 3) return t("partlyCloudy");
   if (code === 45 || code === 48) return t("foggy");
@@ -107,30 +120,21 @@ function getWeatherConditionText(code?: number, t?: (k: any) => string): string 
   return t("partlyCloudy");
 }
 
-function formatScanDate(isoString?: string): string {
-  if (!isoString) return "10 Oct 2026, 10:24 AM";
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return "10 Oct 2026, 10:24 AM";
-    const day = d.getDate();
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const month = months[d.getMonth()];
-    const year = d.getFullYear();
-    const hours = d.getHours();
-    const mins = d.getMinutes().toString().padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const formattedHours = hours % 12 || 12;
-    return `${day} ${month} ${year}, ${formattedHours}:${mins} ${ampm}`;
-  } catch {
-    return "10 Oct 2026, 10:24 AM";
-  }
-}
 
 function HomePage() {
+  const qc = useQueryClient();
   const { t, lang, setLang } = useLang();
   const { location: userLoc } = useUserLocation();
   const initialWeather = useSuspenseQuery(weatherQO).data;
   const scans = useSuspenseQuery(scansQO).data ?? [];
+
+  useEffect(() => {
+    const handleScansUpdate = () => {
+      qc.invalidateQueries({ queryKey: ["scans"] });
+    };
+    window.addEventListener("mirchi_scans_updated", handleScansUpdate);
+    return () => window.removeEventListener("mirchi_scans_updated", handleScansUpdate);
+  }, [qc]);
 
   // Dynamic Crop Profile and Harvest Calculation
   const [cropProfile, setCropProfile] = useState(() => loadCropProfile());
@@ -182,7 +186,9 @@ function HomePage() {
   });
 
   const firstName = (profile?.full_name ?? "Durga").split(" ")[0];
-  const latestScan = scans.length > 0 ? scans[0] : null;
+  const latestScan = scans.length > 0
+    ? [...scans].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+    : null;
 
   // Realistic relative calculations:
   // 1. 7-Day Rainfall sum
@@ -250,16 +256,16 @@ function HomePage() {
       <header className="sticky top-0 z-30 bg-[#fafaf9]/90 backdrop-blur-md pt-7 px-5 pb-3">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-emerald-900/80 text-sm font-semibold tracking-tight">
+            <p className="text-emerald-900/80 text-xs font-semibold tracking-tight">
               {t("greeting")}, {firstName}
             </p>
-            <h1 className="text-[26px] font-extrabold tracking-tight text-stone-900 leading-tight mt-0.5 flex items-center">
-              <span className="text-emerald-600 font-black mr-1.5 leading-none">|</span>
+            <h1 className="text-[22px] sm:text-[24px] font-black tracking-tight text-stone-900 leading-none mt-1 flex items-center whitespace-nowrap">
+              <span className="text-emerald-600 font-black mr-1.5 leading-none select-none">|</span>
               {t("appName")}
             </h1>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
-              <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <div className="size-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+              <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest truncate">
                 {(userLoc?.district || profile?.district || "GUNTUR").toUpperCase()} • {t("online")}
               </p>
             </div>
@@ -319,8 +325,6 @@ function HomePage() {
                     <MapPin className="size-3 text-stone-400" />
                     {userLoc?.district || profile?.district || "Guntur"}, {userLoc?.state || "Andhra Pradesh"}
                   </span>
-                  <span className="text-stone-300">•</span>
-                  <span>{t("lastScan")}: {formatScanDate(latestScan?.created_at)}</span>
                 </div>
               </div>
             </div>
@@ -344,12 +348,12 @@ function HomePage() {
           </div>
 
           {/* Card Body: Left circular gauge + Right stacked cards */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Left Gauge */}
-            <div className="w-[124px] shrink-0">
+            <div className="w-[116px] shrink-0">
               <HealthRing
                 value={healthScore}
-                size={120}
+                size={112}
                 conditionText={healthBadge}
                 subtext={t("subtextBasedOnScan")}
               />
@@ -360,39 +364,36 @@ function HomePage() {
               {/* Leaf Condition (AI) */}
               <Link
                 to="/history"
-                className="bg-[#f4fbf6] hover:bg-[#eef8f1] border border-[#d8f3e2] rounded-2xl p-2.5 flex items-center gap-3 transition group shadow-2xs active:scale-[0.99]"
+                className="bg-[#f4fbf6] hover:bg-[#eef8f1] border border-[#d8f3e2] rounded-2xl p-2.5 block transition group shadow-2xs active:scale-[0.99]"
               >
-                <img
-                  src={latestScan?.image_url || leafThumb}
-                  alt="Scanned Leaf"
-                  className="size-16 rounded-2xl object-cover shrink-0 shadow-2xs"
-                />
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className="size-5 rounded-full bg-[#dcfce7] grid place-items-center shrink-0">
-                        <Leaf className="size-3 text-[#15803d] fill-[#15803d]" />
-                      </div>
-                      <span className="text-[12px] font-semibold text-[#1e2631]">{t("leafCondition")}</span>
+                {/* Header: moved all the way to left, full text in one line */}
+                <div className="flex items-center justify-between gap-1 mb-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="size-4 rounded-full bg-[#dcfce7] grid place-items-center shrink-0">
+                      <Leaf className="size-2.5 text-[#15803d] fill-[#15803d]" />
                     </div>
-                    <ChevronRight className="size-4 text-stone-900 stroke-[2.5] group-hover:translate-x-0.5 transition shrink-0" />
-                  </div>
-
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[20px] font-black text-[#004d20] tracking-tight leading-none">
-                      {latestScan?.is_healthy !== false ? t("healthy") : latestScan?.disease || t("needsAttentionBadge")}
+                    <span className="text-xs font-semibold text-[#1e2631] whitespace-nowrap">
+                      {t("leafCondition")}
                     </span>
-                    <div className="bg-[#dcfce7] px-2.5 py-0.5 rounded-xl flex flex-col items-center justify-center shrink-0">
-                      <span className="text-[12px] font-black text-[#004d20] leading-tight">
-                        {Math.round((latestScan?.confidence ?? 0.92) * 100)}%
-                      </span>
-                      <span className="text-[8.5px] text-[#525a66] font-semibold tracking-tight">{t("confidence")}</span>
-                    </div>
                   </div>
+                  <ChevronRight className="size-4 text-stone-900 stroke-[2.5] group-hover:translate-x-0.5 transition shrink-0" />
+                </div>
 
-                  <p className="text-[11px] text-[#525a66] font-medium leading-snug mt-1">
-                    {latestScan?.recommendation || t("noDiseaseDetected")}
-                  </p>
+                {/* Content: leaf image on left, diagnosis and recommendation on right */}
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src={latestScan?.image_url || leafThumb}
+                    alt="Scanned Leaf"
+                    className="size-11 rounded-xl object-cover shrink-0 shadow-2xs"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-[#004d20] leading-snug line-clamp-1">
+                      {latestScan?.is_healthy !== false ? t("healthy") : latestScan?.disease || t("needsAttentionBadge")}
+                    </p>
+                    <p className="text-[10.5px] text-[#525a66] font-medium leading-snug mt-0.5 line-clamp-2">
+                      {latestScan?.recommendation || t("noDiseaseDetected")}
+                    </p>
+                  </div>
                 </div>
               </Link>
 
@@ -411,13 +412,13 @@ function HomePage() {
                   <p className="text-[15px] font-black text-stone-950 leading-tight mt-0.5">
                     {latestScan?.created_at
                       ? new Date(latestScan.created_at).toLocaleDateString(
-                          lang === "te" ? "te-IN" : lang === "hi" ? "hi-IN" : "en-GB",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
+                        lang === "te" ? "te-IN" : lang === "hi" ? "hi-IN" : "en-GB",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }
+                      )
                       : "8 Oct 2026"}
                   </p>
                   <p className="text-[11px] text-[#3f484e] font-medium leading-snug mt-0.5">

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Image as ImageIcon, RotateCcw, CheckCircle2, AlertTriangle, SwitchCamera, Video, X } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, RotateCcw, CheckCircle2, AlertTriangle, SwitchCamera, Video, X } from "lucide-react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { useLang } from "@/lib/i18n";
 import { analyzeScan, saveScan } from "@/lib/ai.functions";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { auth } from "@/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { recordNewScan, type ScanRecord } from "@/lib/scans";
 
 export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({ meta: [{ title: "Scan crop — MirchiRakshak AI" }] }),
@@ -38,7 +39,6 @@ function ScanPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -99,6 +99,11 @@ function ScanPage() {
     const video = videoRef.current;
     if (!video || !isCameraActive) return;
 
+    if (video.readyState < 2) {
+      toast.error("Camera is warming up. Please hold steady and try again in a moment.");
+      return;
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -134,12 +139,23 @@ function ScanPage() {
     setResult(null);
     try {
       const analysisImage = await prepareScanImage(previewUrl);
+      const tfjsPromise = Promise.race([
+        classifyChiliImageWithTFJS(analysisImage),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+      ]);
       const [imageStats, tfjsResult] = await Promise.all([
         getLeafImageStats(analysisImage),
-        classifyChiliImageWithTFJS(analysisImage),
+        tfjsPromise,
       ]);
-      const predictedClass = tfjsResult?.className;
-      const compressedImage = analysisImage.toDataURL("image/jpeg", 0.84);
+
+      const chlorophyllRatio = imageStats.greenRatio + imageStats.yellowRatio;
+      const hasChiliVegetation = chlorophyllRatio >= 0.12 || (imageStats.greenRatio >= 0.08 && imageStats.yellowRatio >= 0.03);
+      const hasChiliPod = (imageStats.redPodRatio ?? 0) >= 0.15;
+      const isChiliSubject = (hasChiliVegetation || hasChiliPod) && (imageStats.skinRatio < 0.15 || chlorophyllRatio > imageStats.skinRatio * 1.5) && imageStats.nonPlantColorRatio < 0.10;
+
+      // Only provide TFJS prediction if image subject is verified as genuine chili foliage or pod
+      const predictedClass = isChiliSubject ? tfjsResult?.className : undefined;
+      const compressedImage = analysisImage.toDataURL("image/jpeg", 0.78);
       const res = await analyze({
         data: {
           imageBase64: compressedImage.slice(compressedImage.indexOf(",") + 1),
@@ -153,13 +169,36 @@ function ScanPage() {
       setAnalyzing(false);
 
       if (res.is_chili_leaf === false) {
-        toast.error("The leaf is not matched", {
-          description: res.invalid_reason || "The scanned leaf shape or size does not match a chili crop profile.",
+        toast.error(t("leafNotMatched"), {
+          description: res.invalid_reason || t("leafNotMatchedDesc"),
           duration: 5000,
         });
+        return;
       }
 
-      // Save scan to history asynchronously in background without blocking UI display
+      // Save valid chili scan locally immediately so it persists and updates the UI
+      const newScanId = "scan-" + Date.now();
+      const localScanData: ScanRecord = {
+        id: newScanId,
+        image_url: previewUrl,
+        disease: res.disease || (res.is_healthy ? t("healthy") : "Chili Issue"),
+        confidence: res.confidence,
+        severity: res.severity,
+        affected_area: res.affected_area,
+        risk_level: res.risk_level,
+        recommendation: res.recommendation,
+        treatment: res.treatment,
+        recovery_days: res.recovery_days,
+        is_healthy: res.is_healthy,
+        is_chili_leaf: res.is_chili_leaf,
+        invalid_reason: res.invalid_reason,
+        language: lang,
+        created_at: new Date().toISOString(),
+      };
+      recordNewScan(localScanData);
+      qc.invalidateQueries({ queryKey: ["scans"] });
+
+      // Save valid chili scan to history asynchronously in background without blocking UI display
       (async () => {
         let currentUserId: string | null = null;
         try {
@@ -179,6 +218,7 @@ function ScanPage() {
             if (!upErr) {
               const { data: signed } = await supabase.storage.from("scans").createSignedUrl(path, 60 * 60 * 24 * 365);
               if (signed?.signedUrl) {
+                recordNewScan({ ...localScanData, image_url: signed.signedUrl });
                 await save({ data: { ...res, image_url: signed.signedUrl, language: lang } as never });
               } else {
                 await save({ data: { ...res, language: lang } as never });
@@ -203,6 +243,25 @@ function ScanPage() {
     }
   }
 
+  function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+  }
+
   async function getLeafImageStats(image: ChiliScanImage): Promise<{
     greenRatio: number;
     foliageRatio: number;
@@ -211,82 +270,139 @@ function ScanPage() {
     yellowRatio: number;
     darkGreenRatio: number;
     glossyRatio: number;
+    mottleRatio: number;
+    nonPlantColorRatio: number;
+    redPodRatio: number;
   }> {
     const canvas = document.createElement("canvas");
     canvas.width = 96;
     canvas.height = 96;
     const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) return { greenRatio: 0, foliageRatio: 0, skinRatio: 0, brownSpotRatio: 0, yellowRatio: 0, darkGreenRatio: 0, glossyRatio: 0 };
+    if (!context) return { greenRatio: 0, foliageRatio: 0, skinRatio: 0, brownSpotRatio: 0, yellowRatio: 0, darkGreenRatio: 0, glossyRatio: 0, mottleRatio: 0, nonPlantColorRatio: 0, redPodRatio: 0 };
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    let greenPixels = 0;
-    let foliagePixels = 0;
     let skinPixels = 0;
-    let brownSpotPixels = 0;
-    let yellowPixels = 0;
-    let darkGreenPixels = 0;
-    let glossyPixels = 0;
+    let healthyGreenPixels = 0;
+    let chlorosisPixels = 0;
+    let necroticBrownPixels = 0;
+    let darkGlossyPixels = 0;
+    let nonPlantColorPixels = 0;
+    let redPodPixels = 0;
 
     for (let index = 0; index < pixels.length; index += 4) {
       const red = pixels[index];
       const green = pixels[index + 1];
       const blue = pixels[index + 2];
-      const max = Math.max(red, green, blue);
-      const min = Math.min(red, green, blue);
+      const [h, s, l] = rgbToHsl(red, green, blue);
+
+      // 1. Human Skin Detection (Fitzpatrick scale I-VI, faces, selfies, hands, necks)
+      // Warm hue (8-50 deg), red dominant over green and blue
+      const isSkin =
+        red >= 60 &&
+        green >= 30 &&
+        blue >= 15 &&
+        red > green &&
+        red > blue * 1.1 &&
+        h >= 8 &&
+        h <= 50 &&
+        s >= 12 &&
+        l >= 12 &&
+        l <= 85;
+
+      if (isSkin) {
+        skinPixels++;
+        continue;
+      }
+
+      // Red chili pod detection
+      const isRedPod =
+        (h >= 345 || h <= 20) &&
+        s >= 45 &&
+        l >= 20 &&
+        l <= 75 &&
+        red > 110 &&
+        red > green * 1.5;
+
+      if (isRedPod) {
+        redPodPixels++;
+        continue;
+      }
+
+      // Non-plant unnatural color detection (blue, cyan, purple, magenta hues: 175°-320°)
+      if (h >= 175 && h <= 320 && s >= 18 && l >= 15 && l <= 90) {
+        nonPlantColorPixels++;
+      }
+
+      // 2. Leaf Necrotic Brown / Black Spots (Anthracnose lesions, Leaf Spot, Pod Rot)
+      // Dark necrotic tissue on leaf surface (low lightness, dark color)
+      const isNecroticSpot =
+        l >= 5 &&
+        l <= 25 &&
+        (red < 110 && green < 100 && blue < 80) &&
+        Math.abs(red - green) < 25 &&
+        s >= 5 &&
+        s <= 55;
+
+      if (isNecroticSpot) {
+        necroticBrownPixels++;
+        continue;
+      }
+
+      // 3. Chlorosis & Yellowing / Mosaic patches
+      // Pale/bright yellowing: Hue 40° to 58°, high lightness L >= 40, S >= 25%
+      const isChlorosis =
+        h >= 40 &&
+        h <= 58 &&
+        s >= 25 &&
+        l >= 40 &&
+        l <= 90;
+
+      // 4. Healthy Green Leaf (dominant chlorophyll)
+      // Hue 59° to 155°, Green dominant or balanced with sunlight reflection
+      const isHealthyGreen =
+        !isChlorosis &&
+        green >= 35 &&
+        green >= red * 0.95 &&
+        green > blue * 1.15 &&
+        h >= 59 &&
+        h <= 155 &&
+        s >= 12 &&
+        l >= 15 &&
+        l <= 85;
 
       // Dark glossy green (signature of Mango/Banyan tree leaves)
-      const darkGreenLeaf = green > 35 && green < 140 && green > red * 1.15 && green > blue * 1.25;
+      const isDarkGlossy = h >= 70 && h <= 150 && green < 95 && l < 30 && s >= 30;
 
-      // Glossy specular highlight reflection on leaf surface
-      const glossyReflection = red > 165 && green > 165 && blue > 140 && max - min < 40;
-
-      // Green plant leaf pixel check
-      const greenLeaf = green > red * 0.88 && green > blue * 1.05 && green > 30;
-
-      // Require yellow pixels to be distinct from green foliage, rather than counting green shadows as chlorosis.
-      const yellowLeaf =
-        !greenLeaf &&
-        red > 70 &&
-        green > 70 &&
-        blue < 130 &&
-        red >= green * 0.82 &&
-        blue < green * 0.55;
-
-      // Dark brown spot / necrotic lesion on diseased leaf
-      const brownSpot = red > 35 && red < 150 && green > 25 && green < 130 && blue < 95 && red >= green * 0.80 && max - min > 12;
-
-      const isFoliage = greenLeaf || yellowLeaf;
-
-      // Human skin tone detection rule in RGB (only for non-foliage pixels)
-      const isSkin =
-        !isFoliage &&
-        red > 65 &&
-        green > 35 &&
-        blue > 20 &&
-        red > green * 1.18 &&
-        green > blue &&
-        red - green >= 18 &&
-        blue > green * 0.35;
-
-      if (isSkin) skinPixels++;
-      if (greenLeaf) greenPixels++;
-      if (isFoliage) foliagePixels++;
-      if (yellowLeaf) yellowPixels++;
-      if (brownSpot) brownSpotPixels++;
-      if (darkGreenLeaf) darkGreenPixels++;
-      if (glossyReflection) glossyPixels++;
+      if (isChlorosis) chlorosisPixels++;
+      else if (isHealthyGreen) healthyGreenPixels++;
+      if (isDarkGlossy) darkGlossyPixels++;
     }
 
     const totalPixels = pixels.length / 4;
+    const greenRatio = healthyGreenPixels / totalPixels;
+    const yellowRatio = chlorosisPixels / totalPixels;
+    const skinRatio = skinPixels / totalPixels;
+    const rawNecroticRatio = necroticBrownPixels / totalPixels;
+    const chlorophyllRatio = greenRatio + yellowRatio;
+    // Necrotic spots are ONLY valid leaf lesions if surrounding leaf chlorophyll exists (>= 8%)
+    const brownSpotRatio = chlorophyllRatio >= 0.08 ? Math.min(rawNecroticRatio, 0.25) : 0;
+    const foliageRatio = chlorophyllRatio + brownSpotRatio;
+    const mottleRatio = (yellowRatio >= 0.05 && greenRatio >= 0.10) ? Math.min(yellowRatio, greenRatio) * 2 : 0;
+    const nonPlantColorRatio = nonPlantColorPixels / totalPixels;
+    const redPodRatio = redPodPixels / totalPixels;
+
     return {
-      greenRatio: greenPixels / totalPixels,
-      foliageRatio: foliagePixels / totalPixels,
-      skinRatio: skinPixels / totalPixels,
-      brownSpotRatio: brownSpotPixels / totalPixels,
-      yellowRatio: yellowPixels / totalPixels,
-      darkGreenRatio: darkGreenPixels / totalPixels,
-      glossyRatio: glossyPixels / totalPixels,
+      greenRatio,
+      foliageRatio,
+      skinRatio,
+      brownSpotRatio,
+      yellowRatio,
+      darkGreenRatio: darkGlossyPixels / totalPixels,
+      glossyRatio: 0,
+      mottleRatio,
+      nonPlantColorRatio,
+      redPodRatio,
     };
   }
 
@@ -295,7 +411,7 @@ function ScanPage() {
     image.src = url;
     await image.decode();
 
-    const maxDimension = 768;
+    const maxDimension = 640;
     const scale = Math.min(
       1,
       maxDimension / Math.max(image.naturalWidth, image.naturalHeight),
@@ -304,7 +420,7 @@ function ScanPage() {
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
 
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) throw new Error("Could not prepare the image for scanning");
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     return canvas;
@@ -418,24 +534,14 @@ function ScanPage() {
                   </div>
                   <span>{t("takeSnapshotScan")}</span>
                 </button>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => cameraRef.current?.click()}
-                    className="bg-white ring-1 ring-black/5 text-stone-800 rounded-2xl py-3 flex items-center justify-center gap-2 font-medium text-xs active:scale-[0.98] transition"
-                  >
-                    <Camera className="size-4 text-stone-500" />
-                    <span>{t("nativeCamera")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => galleryRef.current?.click()}
-                    className="bg-white ring-1 ring-black/5 text-stone-800 rounded-2xl py-3 flex items-center justify-center gap-2 font-medium text-xs active:scale-[0.98] transition"
-                  >
-                    <ImageIcon className="size-4 text-stone-500" />
-                    <span>{t("galleryUpload")}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  className="w-full bg-white ring-1 ring-black/10 hover:bg-stone-50 text-stone-800 rounded-2xl py-3 flex items-center justify-center gap-2 font-medium text-xs active:scale-[0.98] transition"
+                >
+                  <ImageIcon className="size-4 text-stone-500" />
+                  <span>{t("galleryUpload")}</span>
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -448,28 +554,17 @@ function ScanPage() {
                   <span>{t("openLiveCamera")}</span>
                 </button>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => cameraRef.current?.click()}
-                    className="bg-white ring-1 ring-black/5 text-stone-800 rounded-2xl py-3.5 flex flex-col items-center gap-1 font-semibold active:scale-[0.98] transition"
-                  >
-                    <Camera className="size-4 text-stone-600" />
-                    <span className="text-xs">{t("capturePhoto")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => galleryRef.current?.click()}
-                    className="bg-white ring-1 ring-black/5 text-stone-800 rounded-2xl py-3.5 flex flex-col items-center gap-1 font-semibold active:scale-[0.98] transition"
-                  >
-                    <ImageIcon className="size-4 text-stone-600" />
-                    <span className="text-xs">{t("uploadPhoto")}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  className="w-full bg-white hover:bg-stone-50 ring-1 ring-black/10 text-stone-800 rounded-2xl py-3.5 flex items-center justify-center gap-2.5 font-semibold text-sm shadow-xs active:scale-[0.98] transition"
+                >
+                  <ImageIcon className="size-5 text-stone-600" />
+                  <span>{t("uploadPhoto")}</span>
+                </button>
               </div>
             )}
 
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
             <input ref={galleryRef} type="file" accept="image/*" hidden onChange={onFile} />
           </div>
         ) : (
@@ -562,10 +657,6 @@ function ResultCard({ result }: { result: Result }) {
           </div>
           <h2 className="text-xl font-bold text-stone-900">{result.disease}</h2>
           <p className="text-xs text-stone-500 mt-1">{result.affected_area}</p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-chili-600">{Number(result.confidence).toFixed(0)}%</p>
-          <p className="text-[9px] font-mono text-stone-400 uppercase">{t("confidence")}</p>
         </div>
       </div>
 

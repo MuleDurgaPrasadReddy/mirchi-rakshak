@@ -12,29 +12,31 @@ function getApiKey(): string | undefined {
     process.env.VITE_LOVABLE_API_KEY
   )?.trim();
 
-  return k && k.length > 5 ? k : undefined;
+  if (!k || k.length < 8) return undefined;
+  const lower = k.toLowerCase();
+  if (lower.includes("your-") || lower.includes("placeholder") || lower.includes("example")) {
+    return undefined;
+  }
+  return k;
 }
 
 const scanSystem = `You are MirchiRakshak AI, an expert plant pathologist specializing in chili (Capsicum annuum) crop, leaf, stem, and pod scan diagnosis.
 
-CRITICAL SCAN IDENTIFICATION INSTRUCTIONS:
-1. SUBJECT IDENTIFICATION & VERIFICATION:
-   - Examine the image carefully before diagnosing. Identify the primary subject in the photo.
-   - IF THE PHOTO IS A HUMAN / PERSON / FACE / BODY / SELFIE:
+CRITICAL SCAN IDENTIFICATION INSTRUCTIONS — STRICT CHILI LEAF ONLY ENFORCEMENT:
+1. EXCLUSIVELY CHILI LEAF SUBJECT VERIFICATION:
+   - Examine the image carefully before diagnosing. Determine if the primary subject in the photo is a genuine CHILI (Capsicum annuum) plant leaf, pod, or plant.
+   - ONLY CHILI LEAVES, PLANTS, OR PODS SHOULD BE CONSIDERED!
+   - ALL OTHER IMAGES MUST BE REJECTED AS NOT MATCHED:
+     * Non-chili plants & leaves (e.g., Mango leaf, Tomato leaf, Cotton leaf, Rose leaf, Neem leaf, Papaya, Banana, Guava, Banyan, Citrus, Grass, weeds, house plants, tree leaves, etc.).
+     * Human photos (e.g., Person, Face, Selfie, Body, Hand, Crowd).
+     * Non-plant objects & scenes (e.g., Furniture, Clothes, Animals, Cars, Electronics, Food, Documents, Floor, Wall, Paper, random items).
+   - If the image is ANY of these non-chili items:
      Set "is_chili_leaf": false,
-     Set "disease": "The uploaded image is a human photo and does not match a chili leaf"
-       (In Telugu: "అప్‌లోడ్ చేసిన ఫోటో మనిషిది - మిరప ఆకుతో పోలలేదు", In Hindi: "अपलोड की गई फोटो एक व्यक्ति की है और मिर्च के पत्ते से मेल नहीं खाती"),
-     Set "invalid_reason": "This photo contains a person and does not match a chili leaf image. Please capture a clear photo of a chili plant leaf or pod.",
-     Set "confidence": 0, "severity": "None", "treatment": [].
-   - IF THE PHOTO IS ANOTHER PLANT LEAF OR NON-CHILI ITEM (e.g. Mango leaf, Tomato leaf, Cotton leaf, Rose leaf, Neem leaf, Animal, Furniture, Object):
-     Identify the actual plant or object (e.g., "Mango leaf", "Tomato leaf", "Cotton leaf", "Object").
-     Set "is_chili_leaf": false,
-     Set "disease": "The uploaded image appears to be a [Detected Plant/Object] and does not match a chili leaf"
-       (e.g., "The uploaded image is a Mango leaf and does not match a chili leaf" or in Telugu/Hindi equivalent),
-     Set "invalid_reason": "This image appears to be a [Detected Plant/Object] and does not match a chili crop leaf. Please scan a chili leaf or plant.",
+     Set "disease": "The image is not matched",
+     Set "invalid_reason": "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf.",
      Set "confidence": 0, "severity": "None", "treatment": [].
 
-2. IF IT IS A VALID CHILI CROP / LEAF / POD:
+2. IF AND ONLY IF IT IS A VALID CHILI CROP / LEAF / POD:
    - Set "is_chili_leaf": true.
    - Perform an advanced multi-modal vision diagnosis.
    - Accurately diagnose ANY disease, pest infestation, nutrient deficiency, fungal pathogen, viral infection, or physiological condition affecting the chili crop.
@@ -105,6 +107,7 @@ function normalizeScanResult(parsed: ScanResult, language?: string): ScanResult 
     diseaseText.includes("not match") ||
     diseaseText.includes("does not match") ||
     diseaseText.includes("పోలలేదు") ||
+    diseaseText.includes("సరిపోలలేదు") ||
     diseaseText.includes("नहीं खाती") ||
     parsed.is_chili_leaf === false ||
     String(parsed.is_chili_leaf).toLowerCase() === "false";
@@ -113,38 +116,39 @@ function normalizeScanResult(parsed: ScanResult, language?: string): ScanResult 
     const isTe = language === "te";
     const isHi = language === "hi";
 
-    let title = parsed.disease;
-    let reason = parsed.invalid_reason;
+    const title = isTe
+      ? "ఈ చిత్రం సరిపోలలేదు"
+      : isHi
+        ? "फ़ोटो मेल नहीं खाती (The image is not matched)"
+        : "The image is not matched";
+
+    let reason = "";
 
     if (isMango) {
-      title = isTe
-        ? "అప్‌లోడ్ చేసిన ఫోటో మామిడి ఆకు - మిరప ఆకుతో పోలలేదు"
-        : isHi
-          ? "अपलोड की गई फोटो आम के पत्ते की है और मिर्च के पत्ते से मेल नहीं खाती"
-          : "The uploaded image is a Mango leaf and does not match a chili leaf";
       reason = isTe
-        ? "ఈ ఫోటో మామిడి ఆకు (Mango leaf). ఇది మిరప ఆకుతో పోలడం లేదు. దయచేసి మిరప ఆకును మాత్రమే స్కాన్ చేయండి."
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. అప్‌లోడ్ చేసిన చిత్రం మామిడి ఆకుతో సరిపోలుతోంది - మిరప ఆకుతో సరిపోలలేదు."
         : isHi
-          ? "यह फोटो आम के पत्ते की है। यह मिर्च के पत्ते से मेल नहीं खाती। कृपया मिर्च के पौधे की फोटो लें।"
-          : "The scanned image is a Mango leaf and does not match a chili crop leaf profile. Please scan or upload a clear photo of a chili plant leaf or pod.";
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। यह फ़ोटो आम के पत्ते की है और मिर्च के पत्ते से मेल नहीं खाती।"
+          : "Only chilli leafs should be considered. The uploaded image appears to be a Mango leaf and does not match a chilli leaf.";
     } else if (isPerson) {
-      title = isTe
-        ? "అప్‌లోడ్ చేసిన ఫోటో మనిషిది - మిరప ఆకుతో పోలలేదు"
-        : isHi
-          ? "अपलोड की गई फोटो एक व्यक्ति की है और मिर्च के पत्ते से मेल नहीं खाती"
-          : "The uploaded image is a human photo and does not match a chili leaf";
       reason = isTe
-        ? "ఈ ఫోటోలో మనిషి ఉన్నారు. ఇది మిరప ఆకు లేదా మొక్క ఫొటోతో పోలడం లేదు. దయచేసి మిరప ఆకును మాత్రమే స్కాన్ చేయండి."
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. ఈ ఫోటోలో మనిషి ఉన్నారు - మిరప ఆకుతో సరిపోలలేదు."
         : isHi
-          ? "इस फोटो में व्यक्ति दिखाई दे रहा है। यह मिर्च के पत्ते की फोटो से मेल नहीं खाती। कृपया मिर्च के पत्ते की फोटो लें।"
-          : "This image contains a person and does not match a chili leaf image. Please capture a clear photo of a chili leaf or plant.";
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। इस फ़ोटो में व्यक्ति दिखाई दे रहा है - यह मिर्च के पत्ते से मेल नहीं खाती।"
+          : "Only chilli leafs should be considered. The uploaded image contains a person and does not match a chilli leaf.";
+    } else {
+      reason = isTe
+        ? "మిరప ఆకులను మాత్రమే పరిగణనలోకి తీసుకుంటారు. అప్‌లోడ్ చేసిన చిత్రం మిరప ఆకుతో సరిపోలలేదు. దయచేసి మిరప ఆకు ఫోటోను మాత్రమే స్కాన్ చేయండి."
+        : isHi
+          ? "केवल मिर्च के पत्तों पर विचार किया जाना चाहिए। अपलोड की गई फ़ोटो मिर्च के पत्ते से मेल नहीं खाती। कृपया केवल मिर्च के पत्ते की फ़ोटो लें।"
+          : (parsed.invalid_reason || "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf. Please upload or scan a clear photo of a chili plant leaf or pod.");
     }
 
     return {
       ...parsed,
       is_chili_leaf: false,
-      disease: title || "The uploaded image is not a chili leaf",
-      invalid_reason: reason || "The scanned image does not match a chili leaf.",
+      disease: title,
+      invalid_reason: reason,
       confidence: 0,
       severity: "None",
       treatment: [],
@@ -173,7 +177,7 @@ async function callGeminiVision({
   const isDirectGeminiKey = apiKey.startsWith("AIza");
 
   if (isDirectGeminiKey) {
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+    const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
 
     let mimeType = "image/jpeg";
     let pureBase64 = imageBase64OrUrl;
@@ -213,6 +217,7 @@ async function callGeminiVision({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(4500),
         });
 
         if (res.ok) {
@@ -239,6 +244,7 @@ async function callGeminiVision({
     const res = await fetch(GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(6000),
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
@@ -281,6 +287,9 @@ export const analyzeScan = createServerFn({ method: "POST" })
         yellowRatio?: number;
         darkGreenRatio?: number;
         glossyRatio?: number;
+        mottleRatio?: number;
+        nonPlantColorRatio?: number;
+        redPodRatio?: number;
       };
       predictedClass?: string;
     };
@@ -298,19 +307,30 @@ export const analyzeScan = createServerFn({ method: "POST" })
     const imgPayload = data.imageBase64 || data.imageUrl || "";
 
     const greenRatio = data.imageStats?.greenRatio ?? 0;
+    const yellowRatio = data.imageStats?.yellowRatio ?? 0;
     const foliageRatio = data.imageStats?.foliageRatio ?? 0;
     const skinRatio = data.imageStats?.skinRatio ?? 0;
     const darkGreenRatio = data.imageStats?.darkGreenRatio ?? 0;
     const glossyRatio = data.imageStats?.glossyRatio ?? 0;
-    const plantRatio = greenRatio + foliageRatio;
-    const hasLesionOrYellowing = (data.imageStats?.brownSpotRatio ?? 0) > 0.02 || (data.imageStats?.yellowRatio ?? 0) > 0.04;
+    const nonPlantColorRatio = data.imageStats?.nonPlantColorRatio ?? 0;
+    const redPodRatio = data.imageStats?.redPodRatio ?? 0;
 
-    // Check if client image stats indicate a person photo or Mango leaf photo
-    const isPersonStats = skinRatio >= 0.12 || (skinRatio >= 0.04 && (skinRatio > plantRatio * 0.4 || plantRatio < 0.12));
-    const isMangoStats = darkGreenRatio >= 0.35 && glossyRatio >= 0.02;
+    const chlorophyllRatio = greenRatio + yellowRatio;
+    const hasChiliVegetation = (chlorophyllRatio >= 0.12 || (greenRatio >= 0.08 && yellowRatio >= 0.03));
+    const hasChiliPod = redPodRatio >= 0.15;
 
-    // Suppress misleading local predicted class if person photo, Mango leaf, or if local model claims healthy despite lesions/yellowing
-    let effectivePredictedClass = (isPersonStats || isMangoStats) ? undefined : data.predictedClass;
+    const hasLesionOrYellowing =
+      (data.imageStats?.brownSpotRatio ?? 0) >= 0.015 ||
+      yellowRatio >= 0.03 ||
+      (data.imageStats?.mottleRatio ?? 0) >= 0.03;
+
+    // Check if client image stats indicate a person photo, Mango leaf, or non-plant item
+    const isPersonStats = (skinRatio >= 0.12 && chlorophyllRatio < 0.20) || (skinRatio >= 0.025 && chlorophyllRatio < 0.10);
+    const isMangoStats = darkGreenRatio >= 0.22 || (darkGreenRatio >= 0.14 && glossyRatio >= 0.02);
+    const isNonPlantStats = (!hasChiliVegetation && !hasChiliPod) || nonPlantColorRatio >= 0.10;
+
+    // Suppress misleading local predicted class if person photo, Mango leaf, non-plant, or if local model claims healthy despite lesions/yellowing
+    let effectivePredictedClass = (isPersonStats || isMangoStats || isNonPlantStats) ? undefined : data.predictedClass;
     if (
       effectivePredictedClass &&
       !isPredictionSupportedByImage(effectivePredictedClass, data.imageStats)
@@ -319,6 +339,11 @@ export const analyzeScan = createServerFn({ method: "POST" })
     }
     if (effectivePredictedClass === "Chilli___healthy" && hasLesionOrYellowing) {
       effectivePredictedClass = undefined;
+    }
+
+    // If image fails genuine chili crop test, immediately reject as not matched
+    if (isPersonStats || isMangoStats || isNonPlantStats) {
+      return analyzeImageOffline(imgPayload, data.language, data.imageStats, undefined);
     }
 
     // 1. Dataset offline fallback if API key is missing
@@ -332,12 +357,14 @@ export const analyzeScan = createServerFn({ method: "POST" })
       const langName = data.language === "te" ? "Telugu (తెలుగు)" : data.language === "hi" ? "Hindi (हिंदी)" : "English";
 
       const promptText = isMangoStats
-        ? `CRITICAL VERIFICATION: This photo appears to be a Mango leaf (or non-chili tree leaf). Inspect the leaf species carefully. If it is a Mango leaf or another plant species (not chili), set "is_chili_leaf": false and set "disease": "The uploaded image is a Mango leaf and does not match a chili leaf". Respond in ${langName}.`
+        ? `STRICT VERIFICATION: This photo appears to be a Mango leaf (or non-chili tree leaf). Inspect the leaf species carefully. If it is a Mango leaf or another plant species (not chili), set "is_chili_leaf": false, "disease": "The image is not matched", and "invalid_reason": "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf." Respond in ${langName}.`
         : isPersonStats
-          ? `CRITICAL VERIFICATION: This photo appears to be a selfie or face photo of a person. Check if the image contains a human face, person, or body. If it is a person, set "is_chili_leaf": false and "disease": "The uploaded image is a human photo and does not match a chili leaf". Respond in ${langName}.`
-          : effectivePredictedClass
-            ? `Diagnose this chili crop photo online. Respond in ${langName}. Context from local classifier: '${effectivePredictedClass}'. Perform a full vision diagnosis.`
-            : `Diagnose this uploaded photo online. Respond in ${langName}. First verify if photo contains a human, a Mango leaf, or another plant species (e.g. Tomato, Cotton, Rose, Neem) before diagnosing.`;
+          ? `STRICT VERIFICATION: This photo appears to be a selfie or face photo of a person. If it contains a person, set "is_chili_leaf": false, "disease": "The image is not matched", and "invalid_reason": "Only chilli leafs should be considered. The uploaded image contains a person and does not match a chilli leaf." Respond in ${langName}.`
+          : isNonPlantStats
+            ? `STRICT VERIFICATION: This photo appears to be a non-plant object, indoor scene, or item. If it is not a genuine chili leaf, set "is_chili_leaf": false, "disease": "The image is not matched", and "invalid_reason": "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf." Respond in ${langName}.`
+            : effectivePredictedClass
+              ? `Diagnose this chili crop photo online. Respond in ${langName}. Context from local classifier: '${effectivePredictedClass}'. Perform a full vision diagnosis.`
+              : `STRICT CHILI VERIFICATION: Examine this image carefully. Determine if the photo is a genuine CHILI (Capsicum annuum) leaf or pod. If it is ANY other plant species (e.g. Mango, Tomato, Cotton, Rose, Neem, Papaya, Banana), human photo, animal, or non-plant object, set "is_chili_leaf": false, "disease": "The image is not matched", and "invalid_reason": "Only chilli leafs should be considered. The uploaded image does not match a chilli leaf." Respond in ${langName}.`;
 
       return await callGeminiVision({
         apiKey: key,
@@ -369,7 +396,7 @@ async function callGeminiChat({
   const isDirectGeminiKey = apiKey.startsWith("AIza");
 
   if (isDirectGeminiKey) {
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+    const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
     const contents = messages.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
@@ -390,6 +417,7 @@ async function callGeminiChat({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(4500),
         });
 
         if (res.ok) {
@@ -409,6 +437,7 @@ async function callGeminiChat({
     const res = await fetch(GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(5500),
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -513,7 +542,7 @@ export const fetchWeather = createServerFn({ method: "GET" })
     };
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
       if (!res.ok) return fallback();
       const j = await res.json();
       const humidity = Math.round(j.current.relative_humidity_2m);

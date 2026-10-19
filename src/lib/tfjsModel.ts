@@ -168,7 +168,7 @@ export async function classifyChiliImageWithTFJS(
           .expandDims(0),
       ) as tf.Tensor,
     );
-    let scores: Float32Array;
+    let scores: Float32Array | Int32Array | Uint8Array;
     try {
       scores = await prediction.data();
     } finally {
